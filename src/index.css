@@ -1,13 +1,30 @@
+/* Color variables for easy theming */
+:root {
+  --background-color: #1a202c;
+  --card-background: rgba(30, 41, 59, 0.7); /* Added transparency */
+  --header-border: #4a5568;
+  --text-color: #e2e8f0;
+  --primary-blue: #2563eb;
+  --light-blue: #93c5fd;
+  --light-blue-hover: #3b82f6;
+  --checked-blue: rgba(30, 64, 175, 0.5);
+  --disabled-gray: #4a5568;
+  --disabled-text: #a0aec0;
+  --reset-button-bg: #4a5568;
+  --reset-button-hover: #2d3748;
+  --card-border: rgba(255, 255, 255, 0.1); /* Subtle border for the card */
+  --shadow-color: rgba(59, 130, 246, 0.2);
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #1a202c;
-  color: #e2e8f0;
+  background: linear-gradient(135deg, #1e3a8a, #1a202c); /* Added a subtle gradient background */
+  color: var(--text-color);
   transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
 }
 
 code {
@@ -25,88 +42,103 @@ code {
 
 .app-card {
   width: 100%;
-  max-width: 48rem; /* 768px */
-  background-color: #1e293b; /* slate-900 */
-  border-radius: 1rem;
-  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2), 0 4px 6px -2px rgba(59, 130, 246, 0.1);
-  padding: 2rem;
+  max-width: 48rem;
+  background-color: var(--card-background);
+  border-radius: 1.5rem; /* Increased border radius for a softer look */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 15px var(--shadow-color);
+  padding: 2.5rem; /* Increased padding */
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem; /* Increased gap */
+  /* Glassmorphism effect. Can be performance-intensive.
+     If lag persists on some devices, you can remove this line. */
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--card-border);
 }
 
 /* Header */
 .header {
   text-align: center;
-  border-bottom: 1px solid #4a5568;
-  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--header-border);
+  padding-bottom: 1.5rem; /* Increased padding */
 }
 
 .header img {
-  width: 300px;
+  width: 100%;
+  max-width: 250px; /* Slightly smaller logo */
   margin: auto;
-  margin-bottom: 1rem;
-  border-radius: 25px;
+  margin-bottom: 1.5rem; /* Increased margin */
+  border-radius: 1.5rem;
   background-color: white;
-  padding: 0.5rem;
+  padding: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
 }
 
 .header h1 {
-  font-size: 1.875rem;
-  line-height: 2.25rem;
-  font-weight: 700;
-  color: #93c5fd; /* blue-300 */
+  font-size: 2.25rem; /* Larger font size */
+  font-weight: 800; /* Bolder */
+  color: white; /* Brighter header */
 }
 
 .header p {
-  color: #a0aec0; /* gray-400 */
-  margin-top: 0.25rem;
+  color: var(--disabled-text);
+  margin-top: 0.5rem;
+  font-size: 1.125rem; /* Larger subtext */
 }
 
 /* Step Card */
 .step-card {
-  padding: 1rem;
-  background-color: #334155; /* slate-800 */
-  border-radius: 0.5rem;
-  transition: all 0.5s ease-in-out;
+  padding: 1.5rem;
+  background-color: transparent; /* Steps are transparent to the card background */
+  border-radius: 1rem;
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateX(-100%);
+  opacity: 0;
 }
 
 .step-card.hidden {
   opacity: 0;
   max-height: 0;
   overflow: hidden;
+  transform: translateX(-100%);
+  padding: 0;
+  margin: 0;
 }
 
 .step-card.visible {
   opacity: 1;
   max-height: 1000px;
+  transform: translateX(0);
 }
 
 .step-card h2 {
-  font-weight: 600;
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-  color: #93c5fd; /* blue-300 */
-  margin-bottom: 0.75rem;
+  font-weight: 700;
+  font-size: 1.5rem; /* Larger step titles */
+  color: var(--light-blue);
+  margin-bottom: 1rem;
+  display: flex; /* Aligns number and text */
+  align-items: center;
 }
 
 .step-card h2 span {
-  background-color: #2563eb; /* blue-600 */
+  background-color: var(--primary-blue);
   color: white;
   border-radius: 9999px;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 2rem; /* Larger number circle */
+  height: 2rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-right: 0.5rem;
+  margin-right: 1rem;
+  font-size: 1rem; /* Number font size */
+  animation: bounce 0.6s ease-out;
 }
 
 /* Radio Card */
 .radio-group {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.5rem; /* Increased gap */
 }
 
 @media (min-width: 768px) {
@@ -120,127 +152,168 @@ code {
 }
 
 .radio-card label {
-  display: block;
-  padding: 1rem;
-  border: 2px solid #334155; /* slate-700 */
-  border-radius: 0.5rem;
-  transition: border-color 0.2s, background-color 0.2s;
-  text-align: center;
-  cursor: pointer;
-  min-height: 120px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 1.5rem; /* Increased padding */
+  border: 2px solid var(--header-border);
+  border-radius: 1rem; /* Softer corners */
+  transition: all 0.3s ease; /* Smooth transition for all properties */
+  text-align: center;
+  cursor: pointer;
+  min-height: 140px; /* Taller cards */
+  position: relative; /* For pseudo-elements */
+  /* Performance hint for the browser */
+  will-change: transform, box-shadow, border-color;
 }
 
 .radio-card label.image-card {
-  min-height: 180px;
-}
-
-.radio-card img {
-  margin: auto;
-  margin-bottom: 0.5rem;
-  border-radius: 0.375rem;
-  height: 6rem;
-  object-fit: cover;
+  padding: 0;
+  min-height: 140px;
+  overflow: hidden;
+  border-radius: 1rem;
 }
 
 .radio-card label.checked {
-  border-color: #2563eb; /* blue-600 */
-  background-color: rgba(30, 64, 175, 0.5); /* blue-900/50 */
+  border-color: var(--primary-blue);
+  background-color: var(--checked-blue);
+  transform: translateY(-5px) scale(1.02); /* More pronounced effect */
+  box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -2px var(--shadow-color);
 }
 
-.radio-card label:hover {
-  border-color: #3b82f6; /* blue-500 */
+.radio-card label:hover:not(.disabled) {
+  border-color: var(--light-blue-hover);
+  transform: translateY(-5px);
+  box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color);
 }
 
 .radio-card label.disabled {
-  background-color: #4a5568; /* gray-700 */
-  border-color: #4a5568;
-  opacity: 0.6;
+  background-color: var(--disabled-gray);
+  border-color: var(--disabled-gray);
+  opacity: 0.5;
   cursor: not-allowed;
-  color: #a0aec0; /* gray-400 */
+  color: var(--disabled-text);
+  transform: none;
+  box-shadow: none;
 }
 
 .radio-card span {
   font-weight: 700;
-  color: #e2e8f0; /* gray-200 */
+  font-size: 1.125rem; /* Larger text */
+  color: var(--text-color);
   transition: color 0.2s;
 }
 
 .radio-card label.checked span {
-  color: #bfdbfe; /* blue-200 */
+  color: white; /* Brighter text on checked */
 }
 
 .radio-card .sublabel {
   display: block;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  color: #a0aec0; /* gray-400 */
+  font-size: 1rem; /* Larger sublabel */
+  line-height: 1.5rem;
+  color: var(--disabled-text);
 }
+
+.radio-card img {
+  width: 100%;
+  height: 180px;
+  margin: 0;
+  border-radius: 1rem;
+  transition: transform 0.3s ease; /* Smooth zoom on hover */
+}
+
+.radio-card label:hover img {
+    transform: scale(1.05); /* Zoom effect on image */
+}
+
 
 /* Result Display */
 .result-display {
   text-align: center;
-  padding: 1.5rem;
-  background-color: #2563eb; /* blue-600 */
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--primary-blue), var(--light-blue-hover)); /* Gradient result */
   color: white;
-  border-radius: 0.5rem;
-  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: 1rem;
+  box-shadow: 0 10px 20px -5px rgba(0,0,0,0.2);
+  animation: pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .result-display h3 {
-  font-size: 1.125rem;
-  line-height: 1.75rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
 }
 
 .result-display p {
-  font-size: 1.875rem;
-  line-height: 2.25rem;
-  font-weight: 700;
-  background-color: white;
-  color: #1e3a8a; /* blue-700 */
-  border-radius: 0.375rem;
-  padding: 0.5rem 1rem;
+  font-size: 2.5rem; /* Much larger SPAR# */
+  font-weight: 800;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #1e3a8a;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
   display: inline-block;
+  animation: pop-in 0.5s ease-out;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
 }
 
 /* Reset button */
 .reset-button-container {
   text-align: center;
-  padding-top: 1rem;
-  border-top: 1px solid #4a5568;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--header-border);
 }
 
 .reset-button {
-  background-color: #4a5568;
+  background-color: var(--reset-button-bg);
   color: white;
-  font-weight: 600;
-  padding: 0.5rem 1.5rem;
-  border-radius: 0.5rem;
-  transition: background-color 0.2s;
+  font-weight: 700; /* Bolder text */
+  padding: 0.75rem 2rem; /* Larger button */
+  border-radius: 0.75rem;
+  transition: all 0.3s ease; /* Smooth transition */
   border: none;
   cursor: pointer;
+  font-size: 1rem; /* Larger font */
+  will-change: transform, background-color;
 }
 
 .reset-button:hover {
-  background-color: #2d3748;
+  background-color: var(--reset-button-hover);
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
 .reset-button:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #1e293b, 0 0 0 4px #3b82f6;
+  box-shadow: 0 0 0 3px var(--card-background), 0 0 0 5px var(--light-blue-hover);
 }
 
 @keyframes pulse {
   0%, 100% {
-    opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: .5;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.5) rotate(-15deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
   }
 }

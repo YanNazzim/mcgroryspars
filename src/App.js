@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react'; // Import memo
 import images from './images/images';
 import './index.css';
 
-// This component represents a single step in the form.
-const Step = React.forwardRef(({ number, title, children, isVisible }, ref) => {
+// By wrapping the component in React.memo, we prevent it from re-rendering
+// if its props (isVisible, title, etc.) have not changed.
+const Step = memo(React.forwardRef(({ number, title, children, isVisible }, ref) => {
     return (
         <div ref={ref} className={`step-card ${isVisible ? 'visible' : 'hidden'}`}>
             {isVisible && (
@@ -17,10 +18,11 @@ const Step = React.forwardRef(({ number, title, children, isVisible }, ref) => {
             )}
         </div>
     );
-});
+}));
 
-// This component represents a custom radio button card.
-const RadioCard = ({ name, value, label, sublabel, checked, onChange, disabled, imageUrl }) => {
+// Memoizing the RadioCard means that only the cards that are actually
+// changing (e.g., the one being checked) will re-render.
+const RadioCard = memo(({ name, value, label, sublabel, checked, onChange, disabled, imageUrl }) => {
     return (
         <div className="radio-card">
             <input
@@ -34,7 +36,7 @@ const RadioCard = ({ name, value, label, sublabel, checked, onChange, disabled, 
             />
             <label
                 htmlFor={`${name}_${value}`}
-                className={`${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} ${imageUrl ? 'image-card' : ''}`}
+                className={`${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} ${imageUrl ? 'image-card' : ''} ${!label && imageUrl ? 'no-label' : ''}`}
             >
                 {imageUrl && (
                     <img
@@ -43,12 +45,21 @@ const RadioCard = ({ name, value, label, sublabel, checked, onChange, disabled, 
                         onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/200x150/1a202c/e2e8f0?text=Image+Error'; }}
                     />
                 )}
-                <span>{label}</span>
+                {label && <span>{label}</span>}
                 {sublabel && <span className="sublabel">{sublabel}</span>}
             </label>
         </div>
     );
-};
+});
+
+// A helper hook to get the previous value of a prop or state.
+function usePrevious(value) {
+    const ref = useRef();
+    useEffect(() => {
+        ref.current = value;
+    });
+    return ref.current;
+}
 
 
 // Main App Component
@@ -89,39 +100,60 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [series, device, func, auxLatch, thickness]);
 
+    // Determine visibility of each step
+    const isStep1Visible = true;
+    const isStep2Visible = series !== null;
+    const isStep3Visible = device !== null && device === '8400';
+    const isStep4Visible = device === '8400' && func !== null;
+    const isStep5Visible = (device === '8500' && device !== null) || (device === '8400' && auxLatch !== null);
+
+    // Get the previous visibility state to trigger scroll only when a step becomes visible
+    const prevIsStep2Visible = usePrevious(isStep2Visible);
+    const prevIsStep3Visible = usePrevious(isStep3Visible);
+    const prevIsStep4Visible = usePrevious(isStep4Visible);
+    const prevIsStep5Visible = usePrevious(isStep5Visible);
+    const prevSparNumber = usePrevious(sparNumber);
+
+    // Generic scroll function
+    const scrollToRef = (ref) => {
+        if (ref.current) {
+            // A timeout to ensure the element is rendered and ready for the scroll
+            setTimeout(() => {
+                ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    };
+
     // Auto-scroll effects for each step
     useEffect(() => {
-        if (series && step2Ref.current) {
-            step2Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!prevIsStep2Visible && isStep2Visible) {
+            scrollToRef(step2Ref);
         }
-    }, [series]);
+    }, [isStep2Visible, prevIsStep2Visible]);
 
     useEffect(() => {
-        if (device && device === '8400' && step3Ref.current) {
-            step3Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else if (device && device === '8500' && step5Ref.current) {
-             step5Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!prevIsStep3Visible && isStep3Visible) {
+            scrollToRef(step3Ref);
         }
-    }, [device]);
+    }, [isStep3Visible, prevIsStep3Visible]);
 
     useEffect(() => {
-        if (func && device === '8400' && step4Ref.current) {
-            step4Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!prevIsStep4Visible && isStep4Visible) {
+            scrollToRef(step4Ref);
         }
-    }, [func, device]);
-    
-    useEffect(() => {
-        if (auxLatch && device === '8400' && step5Ref.current) {
-            step5Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }, [auxLatch, device]);
+    }, [isStep4Visible, prevIsStep4Visible]);
 
     useEffect(() => {
-        if (sparNumber && resultRef.current) {
-            resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!prevIsStep5Visible && isStep5Visible) {
+            scrollToRef(step5Ref);
         }
-    }, [sparNumber]);
+    }, [isStep5Visible, prevIsStep5Visible]);
 
+    useEffect(() => {
+        if (!prevSparNumber && sparNumber) {
+            scrollToRef(resultRef);
+        }
+    }, [sparNumber, prevSparNumber]);
 
     // Function to generate the SPAR# based on selections
     const generateSpar = () => {
@@ -180,14 +212,6 @@ export default function App() {
         setSparNumber(null);
     };
 
-    // Determine visibility of each step
-    const isStep1Visible = true;
-    const isStep2Visible = series !== null;
-    const isStep3Visible = device !== null && device === '8400';
-    const isStep4Visible = device === '8400' && func !== null;
-    const isStep5Visible = (device === '8500' && device !== null) || (device === '8400' && auxLatch !== null);
-
-
     return (
         <div className="app-container">
             <div className="app-card">
@@ -214,15 +238,15 @@ export default function App() {
                 {/* Step 2: Device Selection */}
                 <Step ref={step2Ref} number="2" title="Select Device" isVisible={isStep2Visible}>
                     <div className="radio-group">
-                        <RadioCard name="device" value="8400" label="8400 CVR Exit" checked={device === '8400'} onChange={(e) => {setDevice(e.target.value); setFunc(null); setAuxLatch(null);}} imageUrl="https://placehold.co/200x150/333333/e0e0e0?text=8400+CVR+Exit" />
-                        <RadioCard name="device" value="8500" label="8500 Rim Exit" checked={device === '8500'} onChange={(e) => {setDevice(e.target.value); setFunc('all_other'); setAuxLatch(null);}} imageUrl="https://placehold.co/200x150/333333/e0e0e0?text=8500+Rim+Exit" />
+                        <RadioCard name="device" value="8400" checked={device === '8400'} onChange={(e) => {setDevice(e.target.value); setFunc(null); setAuxLatch(null);}} imageUrl={images.CVR}/>
+                        <RadioCard name="device" value="8500" checked={device === '8500'} onChange={(e) => {setDevice(e.target.value); setFunc('all_other'); setAuxLatch(null);}} imageUrl={images.RIM} />
                     </div>
                 </Step>
 
                 {/* Step 3: Function Selection */}
                 <Step ref={step3Ref} number="3" title="Select Function" isVisible={isStep3Visible}>
                     <div className="radio-group">
-                        <RadioCard name="func" value="exit_only" label={`10- Exit Only (${device === '8400' ? '8410' : '8510'})`} checked={func === 'exit_only'} onChange={(e) => setFunc(e.target.value)} />
+                        <RadioCard name="func" value="exit_only" label={`10 - Exit Only (${device === '8400' ? '8410' : '8510'})`} checked={func === 'exit_only'} onChange={(e) => setFunc(e.target.value)} />
                         <RadioCard name="func" value="all_other" label="All other functions" checked={func === 'all_other'} onChange={(e) => setFunc(e.target.value)} />
                     </div>
                 </Step>
