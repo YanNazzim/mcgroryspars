@@ -70,19 +70,21 @@ export default function App() {
 
     // This effect will run when all required selections are made
     useEffect(() => {
-        // Guard clause to prevent running on initial render
-        if (!series || !device || !func || !thickness) {
-            setSparNumber(null); // Reset if any dependency changes and is not set
-            return;
-        }
-
-        // Specific check for 8400 device requiring auxLatch selection
-        if (device === '8400' && auxLatch === null) {
+        if (device === '8400') {
+            if (series && func && auxLatch && thickness) {
+                generateSpar();
+            } else {
+                setSparNumber(null);
+            }
+        } else if (device === '8500') {
+            if (series && thickness) {
+                generateSpar();
+            } else {
+                setSparNumber(null);
+            }
+        } else {
             setSparNumber(null);
-            return;
         }
-
-        generateSpar();
         
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [series, device, func, auxLatch, thickness]);
@@ -95,16 +97,16 @@ export default function App() {
     }, [series]);
 
     useEffect(() => {
-        if (device && step3Ref.current) {
+        if (device && device === '8400' && step3Ref.current) {
             step3Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (device && device === '8500' && step5Ref.current) {
+             step5Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }, [device]);
 
     useEffect(() => {
         if (func && device === '8400' && step4Ref.current) {
             step4Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else if (func && device === '8500' && step5Ref.current) {
-             step5Ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }, [func, device]);
     
@@ -128,33 +130,29 @@ export default function App() {
                 '8400': {
                     'exit_only': {
                         'yes': {
-                            '2': 'SPAR-80-8400-10-106-T200',
-                            '2-9/16': 'SPAR-80-8400-10-106-T256',
+                            '2': 'SPAR10091',
+                            '2-9/16': 'SPAR10068',
                         },
                         'no': {
-                            '2': 'SPAR-80-8400-10-N106-T200',
-                            '2-9/16': 'SPAR-80-8400-10-N106-T256',
+                            '2': 'SPAR10089',
+                            '2-9/16': 'SPAR09752',
                         },
                     },
                     'all_other': {
                         'yes': {
-                            '2': 'SPAR-80-8400-AF-106-T200',
-                            '2-9/16': 'SPAR-80-8400-AF-106-T256',
+                            '2': 'SPAR10086',
+                            '2-9/16': 'SPAR10066',
                         },
                         'no': {
-                            '2': 'SPAR-80-8400-AF-N106-T200',
-                            '2-9/16': 'SPAR-80-8400-AF-N106-T256',
+                            '2': 'SPAR10087',
+                            '2-9/16': 'SPAR10063',
                         },
                     },
                 },
                 '8500': {
-                    'exit_only': {
-                        '2': 'SPAR-80-8500-10-T200',
-                        '2-9/16': 'SPAR-80-8500-10-T256',
-                    },
                     'all_other': {
-                        '2': 'SPAR-80-8500-AF-T200',
-                        '2-9/16': 'SPAR-80-8500-AF-T256',
+                        '2': 'SPAR10080',
+                        '2-9/16': 'SPAR10079',
                     },
                 },
             },
@@ -165,7 +163,8 @@ export default function App() {
         if (device === '8400') {
             generatedSpar = sparLookupTable[series][device][func][auxLatch][thickness];
         } else {
-            generatedSpar = sparLookupTable[series][device][func][thickness];
+            // Logic for the 8500 device, which only uses 'all_other' and thickness
+            generatedSpar = sparLookupTable[series][device]['all_other'][thickness];
         }
 
         setSparNumber(generatedSpar);
@@ -184,9 +183,9 @@ export default function App() {
     // Determine visibility of each step
     const isStep1Visible = true;
     const isStep2Visible = series !== null;
-    const isStep3Visible = device !== null;
+    const isStep3Visible = device !== null && device === '8400';
     const isStep4Visible = device === '8400' && func !== null;
-    const isStep5Visible = (device === '8500' && func !== null) || (device === '8400' && auxLatch !== null);
+    const isStep5Visible = (device === '8500' && device !== null) || (device === '8400' && auxLatch !== null);
 
 
     return (
@@ -215,8 +214,8 @@ export default function App() {
                 {/* Step 2: Device Selection */}
                 <Step ref={step2Ref} number="2" title="Select Device" isVisible={isStep2Visible}>
                     <div className="radio-group">
-                        <RadioCard name="device" value="8400" label="8400 CVR Exit" checked={device === '8400'} onChange={(e) => setDevice(e.target.value)} imageUrl="https://placehold.co/200x150/333333/e0e0e0?text=8400+CVR+Exit" />
-                        <RadioCard name="device" value="8500" label="8500 Rim Exit" checked={device === '8500'} onChange={(e) => setDevice(e.target.value)} imageUrl="https://placehold.co/200x150/333333/e0e0e0?text=8500+Rim+Exit" />
+                        <RadioCard name="device" value="8400" label="8400 CVR Exit" checked={device === '8400'} onChange={(e) => {setDevice(e.target.value); setFunc(null); setAuxLatch(null);}} imageUrl="https://placehold.co/200x150/333333/e0e0e0?text=8400+CVR+Exit" />
+                        <RadioCard name="device" value="8500" label="8500 Rim Exit" checked={device === '8500'} onChange={(e) => {setDevice(e.target.value); setFunc('all_other'); setAuxLatch(null);}} imageUrl="https://placehold.co/200x150/333333/e0e0e0?text=8500+Rim+Exit" />
                     </div>
                 </Step>
 
@@ -237,7 +236,7 @@ export default function App() {
                 </Step>
                 
                 {/* Step 5: Door Thickness */}
-                <Step ref={step5Ref} number={device === '8400' ? 5 : 4} title="Select Door Thickness" isVisible={isStep5Visible}>
+                <Step ref={step5Ref} number={device === '8400' ? 5 : 3} title="Select Door Thickness" isVisible={isStep5Visible}>
                      <div className="radio-group">
                         <RadioCard name="thickness" value="2" label='2"' checked={thickness === '2'} onChange={(e) => setThickness(e.target.value)} />
                         <RadioCard name="thickness" value="2-9/16" label='2-9/16"' checked={thickness === '2-9/16'} onChange={(e) => setThickness(e.target.value)} />
