@@ -222,6 +222,7 @@ code {
   margin: 0;
   border-radius: 1rem;
   transition: transform 0.3s ease; /* Smooth zoom on hover */
+  object-fit: cover; /* Ensures images are not distorted */
 }
 
 .radio-card label:hover img {
@@ -315,5 +316,65 @@ code {
   to {
     transform: scale(1) rotate(0deg);
     opacity: 1;
+  }
+}
+
+/* === Mobile Responsive Styles === */
+@media (max-width: 767px) {
+  .app-card {
+    padding: 1.5rem; /* Reduce padding on mobile to give content more space */
+    gap: 1.5rem;
+  }
+
+  .header h1 {
+    font-size: 1.875rem; /* Adjust h1 font size */
+  }
+
+  .header p {
+    font-size: 1rem; /* Adjust paragraph font size */
+  }
+
+  .step-card {
+    padding: 1rem 0; /* Adjust step padding */
+  }
+  
+  .step-card h2 {
+    font-size: 1.25rem; /* Adjust h2 font size */
+  }
+  
+  .step-card h2 span {
+    width: 1.75rem; /* Adjust number circle size */
+    height: 1.75rem;
+    font-size: 0.875rem;
+    margin-right: 0.75rem;
+  }
+  
+  .radio-group {
+    gap: 1rem; /* Reduce gap between radio cards */
+  }
+
+  .radio-card label {
+    padding: 1.25rem 1rem; /* Adjust padding in radio cards */
+    min-height: auto; /* Allow height to be determined by content */
+    flex-direction: row; /* For text-only cards, align items side-by-side */
+    justify-content: flex-start;
+  }
+
+  .radio-card label.image-card {
+    flex-direction: column; /* Keep image cards stacked vertically */
+    justify-content: center;
+  }
+
+  .radio-card img {
+    height: 150px; /* Adjust image height for mobile */
+  }
+
+  .result-display {
+    padding: 1.5rem; /* Adjust result padding */
+  }
+  
+  .result-display p {
+    font-size: 1.875rem; /* Make SPAR# font size manageable on small screens */
+    word-break: break-all; /* Ensure long SPAR# doesn't overflow */
   }
 }
