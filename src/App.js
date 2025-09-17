@@ -188,6 +188,36 @@ export default function App() {
                     },
                 },
             },
+            'PE80': {
+                '8400': {
+                    'exit_only': {
+                        'yes': {
+                            '2': 'SPAR10450',
+                            '2-9/16': 'SPAR10452',
+                        },
+                        'no': {
+                            '2': 'SPAR10448',
+                            '2-9/16': 'SPAR10451',
+                        },
+                    },
+                    'all_other': {
+                        'yes': {
+                            '2': 'SPAR10446',
+                            '2-9/16': 'SPAR10444',
+                        },
+                        'no': {
+                            '2': 'SPAR10445',
+                            '2-9/16': 'SPAR10443',
+                        },
+                    },
+                },
+                '8500': {
+                    'all_other': {
+                        '2': 'SPAR10454',
+                        '2-9/16': 'SPAR10453',
+                    },
+                },
+            },
         };
         
         let generatedSpar;
@@ -231,22 +261,22 @@ export default function App() {
                 <Step number="1" title="Select Series" isVisible={isStep1Visible}>
                     <div className="radio-group">
                         <RadioCard name="series" value="80" label="80 Series" checked={series === '80'} onChange={(e) => setSeries(e.target.value)} />
-                        <RadioCard name="series" value="PE80" label="PE80 Series" sublabel="Coming Soon" disabled={true} />
+                        <RadioCard name="series" value="PE80" label="PE80 Series" checked={series === 'PE80'} onChange={(e) => setSeries(e.target.value)} />
                     </div>
                 </Step>
 
                 {/* Step 2: Device Selection */}
                 <Step ref={step2Ref} number="2" title="Select Device" isVisible={isStep2Visible}>
                     <div className="radio-group">
-                        <RadioCard name="device" value="8400" checked={device === '8400'} onChange={(e) => {setDevice(e.target.value); setFunc(null); setAuxLatch(null);}} imageUrl={images.CVR}/>
-                        <RadioCard name="device" value="8500" checked={device === '8500'} onChange={(e) => {setDevice(e.target.value); setFunc('all_other'); setAuxLatch(null);}} imageUrl={images.RIM} />
+                        <RadioCard name="device" value="8400" checked={device === '8400'} onChange={(e) => {setDevice(e.target.value); setFunc(null); setAuxLatch(null);}} imageUrl={series === 'PE80' ? images.PE80_CVR : images.CVR} />
+                        <RadioCard name="device" value="8500" checked={device === '8500'} onChange={(e) => {setDevice(e.target.value); setFunc('all_other'); setAuxLatch(null);}} imageUrl={series === 'PE80' ? images.PE80_RIM : images.RIM} />
                     </div>
                 </Step>
 
                 {/* Step 3: Function Selection */}
                 <Step ref={step3Ref} number="3" title="Select Function" isVisible={isStep3Visible}>
                     <div className="radio-group">
-                        <RadioCard name="func" value="exit_only" label={`10 - Exit Only (${device === '8400' ? '8410' : '8510'})`} checked={func === 'exit_only'} onChange={(e) => setFunc(e.target.value)} />
+                        <RadioCard name="func" value="exit_only" label={`10 - Exit Only (${device === '8400' ? '8410/PE8410' : '8510/PE8510'})`} checked={func === 'exit_only'} onChange={(e) => setFunc(e.target.value)} />
                         <RadioCard name="func" value="all_other" label="All other functions" checked={func === 'all_other'} onChange={(e) => setFunc(e.target.value)} />
                     </div>
                 </Step>
