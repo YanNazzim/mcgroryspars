@@ -50,8 +50,7 @@ code {
   display: flex;
   flex-direction: column;
   gap: 2rem; /* Increased gap */
-  /* Glassmorphism effect. Can be performance-intensive.
-     If lag persists on some devices, you can remove this line. */
+  /* Glassmorphism effect. Can be performance-intensive. */
   backdrop-filter: blur(10px);
   border: 1px solid var(--card-border);
 }
@@ -153,7 +152,7 @@ code {
 
 .radio-card label {
   display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Default to column for consistency, especially with sublabels */
   align-items: center;
   justify-content: center;
   padding: 1.5rem; /* Increased padding */
@@ -163,19 +162,15 @@ code {
   text-align: center;
   cursor: pointer;
   min-height: 140px; /* Taller cards */
-  position: relative; /* For pseudo-elements */
-  /* Performance hint for the browser */
+  position: relative;
+  gap: 0.5rem; /* Gap between content elements */
   will-change: transform, box-shadow, border-color;
 }
 
 .radio-card label.image-card {
   padding: 1rem;
-  min-height: 140px;
-  overflow: hidden;
-  border-radius: 1rem;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1rem;
+  min-height: 180px; /* Increased min-height for image cards */
+  gap: 0.75rem;
 }
 
 .radio-card label.checked {
@@ -206,7 +201,7 @@ code {
   font-size: 1.125rem; /* Larger text */
   color: var(--text-color);
   transition: color 0.2s;
-  flex: 1; /* This will make the span take up remaining space if the image is at the top */
+  flex: 1;
 }
 
 .radio-card label.checked span {
@@ -216,8 +211,9 @@ code {
 .radio-card .sublabel {
   display: block;
   font-size: 1rem; /* Larger sublabel */
-  line-height: 1.5rem;
+  line-height: 1.4;
   color: var(--disabled-text);
+  font-weight: 400; /* Lighter font weight for sublabel */
 }
 
 .radio-card img {
@@ -225,9 +221,9 @@ code {
   max-width: 250px;
   height: auto;
   margin: 0;
-  border-radius: 1rem;
-  transition: transform 0.3s ease; /* Smooth zoom on hover */
-  object-fit: contain; /* Ensures images are not distorted */
+  border-radius: 0.5rem; /* Slightly smaller border radius for images */
+  transition: transform 0.3s ease;
+  object-fit: contain;
 }
 
 .radio-card label:hover img {
@@ -360,18 +356,24 @@ code {
 
   .radio-card label {
     padding: 1.25rem 1rem; /* Adjust padding in radio cards */
-    min-height: auto; /* Allow height to be determined by content */
-    flex-direction: row; /* For text-only cards, align items side-by-side */
-    justify-content: flex-start;
-  }
-
-  .radio-card label.image-card {
-    flex-direction: column; /* Keep image cards stacked vertically */
+    min-height: auto; 
+    flex-direction: column; /* Force column layout on mobile for cleaner stacking of image/label/sublabel */
     justify-content: center;
+    gap: 0.5rem;
   }
 
   .radio-card img {
-    height: auto; /* Adjust image height for mobile */
+      max-width: 80%; /* Slightly smaller image on mobile */
+      margin-bottom: 0.5rem;
+  }
+  
+  .radio-card span {
+      text-align: center;
+      line-height: 1.2;
+  }
+
+  .radio-card .sublabel {
+      font-size: 0.875rem; /* Smaller sublabel on mobile */
   }
 
   .result-display {
