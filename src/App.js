@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef, memo } from 'react'; // Import memo
 import images from './images/images';
+import { sparLookupTable, sparDatabase, labels } from './sparData';
+import { downloadImage, printImage } from './sparActions';
+import FullDatabase from './FullDatabase';
 import './index.css';
 
 // By wrapping the component in React.memo, we prevent it from re-rendering
@@ -71,6 +74,9 @@ export default function App() {
     const [auxLatch, setAuxLatch] = useState(null);
     const [thickness, setThickness] = useState(null);
     const [sparNumber, setSparNumber] = useState(null);
+
+    // Which top-level tab is showing: the step-by-step generator or the full DB.
+    const [activeTab, setActiveTab] = useState('generator');
 
     // Refs for each step to enable scrolling
     const step2Ref = useRef(null);
@@ -162,90 +168,9 @@ export default function App() {
     }, [sparNumber, prevSparNumber]);
 
     // Function to generate the SPAR# based on selections
+    // (sparLookupTable is imported from ./sparData so the generator and the
+    //  Full Database tab always stay in sync.)
     const generateSpar = () => {
-        const sparLookupTable = {
-            '80': {
-                '8400': {
-                    'exit_only': {
-                        'yes': {
-                            '2': 'SPAR10091',
-                            '2-9/16': 'SPAR10068',
-                        },
-                        'no': {
-                            '2': 'SPAR10089',
-                            '2-9/16': 'SPAR09752',
-                        },
-                    },
-                    'all_other': {
-                        'yes': {
-                            '2': 'SPAR10086',
-                            '2-9/16': 'SPAR10066',
-                        },
-                        'no': {
-                            '2': 'SPAR10087',
-                            '2-9/16': 'SPAR10063',
-                        },
-                    },
-                },
-                '8500': {
-                    // New Function Groupings for 8500 devices
-                    'exit_only': { // 8510 function (Original SPARs)
-                        '2': 'SPAR10080',
-                        '2-9/16': 'SPAR10079',
-                    },
-                    'night_latch': { // 04 function
-                        '2': 'SPAR10901', // PLACEHOLDER: Please replace with correct SPAR#
-                        '2-9/16': 'SPAR10901', // PLACEHOLDER: Please replace with correct SPAR#
-                    },
-                    'trim_lockable': { // 06/13/15/43/46/73/74 functions
-                        '2': 'SPAR10080',
-                        '2-9/16': 'SPAR10079',
-                    },
-                },
-            },
-            'PE80': {
-                '8400': {
-                    'exit_only': {
-                        'yes': {
-                            '2': 'SPAR10450',
-                            '2-9/16': 'SPAR10452',
-                        },
-                        'no': {
-                            '2': 'SPAR10448',
-                            '2-9/16': 'SPAR10451',
-                        },
-                    },
-                    'all_other': {
-                        'yes': {
-                            '2': 'SPAR10446',
-                            '2-9/16': 'SPAR10444',
-                        },
-                        'no': {
-                            '2': 'SPAR10445',
-                            '2-9/16': 'SPAR10443',
-                        },
-                    },
-                },
-                '8500': {
-                    // PE80 8500 now uses the same function structure
-                    'exit_only': { // 8510 function (Original SPARs)
-                        '2': 'SPAR10454',
-                        '2-9/16': 'SPAR10453',
-                    },
-                    'night_latch': { // 04 function
-                        '2': 'SPAR10901',
-                        '2-9/16': 'SPAR10901',
-
-                    },
-                    'trim_lockable': { // 06/13/15/43/46/73/74 functions
-                        '2': 'SPAR10454',
-                        '2-9/16': 'SPAR10453',
-
-                    },
-                },
-            },
-        };
-
         let generatedSpar;
 
         if (device === '8400') {
@@ -270,7 +195,7 @@ export default function App() {
 
     return (
         <div className="app-container">
-            <div className="app-card">
+            <div className={`app-card ${activeTab === 'fulldb' ? 'wide' : ''}`}>
 
                 {/* Header */}
                 <div className="header">
@@ -279,15 +204,41 @@ export default function App() {
                         alt="Sargent x McGrory Glass"
                         onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/300x80/cccccc/000000?text=Logo+Not+Found'; }}
                     />
-                    <h1>SPAR# Generator</h1>
-                    <p>Follow the steps to generate the correct Special Order Form number.</p>
+                    <h1>{activeTab === 'generator' ? 'SPAR# Generator' : 'Full SPAR Database'}</h1>
+                    <p>
+                        {activeTab === 'generator'
+                            ? 'Follow the steps to generate the correct Special Order Form number.'
+                            : 'Browse every SPAR drawing and the configuration that produces it. Download or print any page.'}
+                    </p>
                 </div>
 
+                {/* Tab navigation */}
+                <div className="tab-bar">
+                    <button
+                        className={`tab-button ${activeTab === 'generator' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('generator')}
+                    >
+                        SPAR# Generator
+                    </button>
+                    <button
+                        className={`tab-button ${activeTab === 'fulldb' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('fulldb')}
+                    >
+                        Full Database
+                    </button>
+                </div>
+
+                {activeTab === 'fulldb' && (
+                    <FullDatabase database={sparDatabase} labels={labels} />
+                )}
+
+                {activeTab === 'generator' && (
+                  <>
                 {/* Step 1: Series Selection */}
                 <Step number="1" title="Select Series" isVisible={isStep1Visible}>
                     <div className="radio-group">
                         <RadioCard name="series" value="80" label="80 Series" checked={series === '80'} onChange={(e) => setSeries(e.target.value)} />
-                        <RadioCard name="series" value="PE80" label="PE80 Series (Protective Edge)" checked={series === 'PE80'} onChange={(e) => setSeries(e.target.value)} />
+                        <RadioCard name="series" value="PE80" label="PE80 Series (New Generation)" checked={series === 'PE80'} onChange={(e) => setSeries(e.target.value)} />
                     </div>
                 </Step>
 
@@ -385,12 +336,33 @@ export default function App() {
                 </Step>
 
                 {/* Result Display */}
-                {sparNumber && (
-                    <div ref={resultRef} className="result-display">
-                        <h3>Generated SPAR#</h3>
-                        <p>{sparNumber}</p>
-                    </div>
-                )}
+                {sparNumber && (() => {
+                    const entry = sparDatabase.find((e) => e.spar === sparNumber);
+                    const image = entry ? entry.image : null;
+                    return (
+                        <div ref={resultRef} className="result-display">
+                            <h3>Generated SPAR#</h3>
+                            <p
+                                className="result-spar"
+                                title="Click to copy"
+                                onClick={() => navigator.clipboard && navigator.clipboard.writeText(sparNumber)}
+                            >
+                                {sparNumber}
+                            </p>
+                            {image ? (
+                                <div className="result-drawing">
+                                    <img src={image} alt={`${sparNumber} reference drawing`} />
+                                    <div className="result-actions">
+                                        <button className="spar-btn download" onClick={() => downloadImage(image, sparNumber)}>Download</button>
+                                        <button className="spar-btn print" onClick={() => printImage(image, sparNumber)}>Print</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="result-nodrawing">Reference drawing pending for this configuration.</p>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* Reset Button */}
                 {(series || sparNumber) && (
@@ -402,6 +374,8 @@ export default function App() {
                             Start Over
                         </button>
                     </div>
+                )}
+                  </>
                 )}
             </div>
         </div>
