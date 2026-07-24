@@ -136,10 +136,15 @@ function buildDatabase() {
 
     return order.map((spar) => {
         const configs = bySpar[spar].configs;
+        const img = sparImages[spar] || null;
         return {
             spar,
-            image: sparImages[spar] || null,
+            special: false,
+            images: img ? [img] : [],
+            captions: null,
+            image: img, // convenience: first page
             note: drawingNotes[spar] || null,
+            configRows: null, // derived from labels in the UI
             series: uniq(configs.map((c) => c.series)),
             devices: uniq(configs.map((c) => c.device)),
             funcs: uniq(configs.map((c) => c.func)),
@@ -150,4 +155,41 @@ function buildDatabase() {
     });
 }
 
-export const sparDatabase = buildDatabase();
+// ---------------------------------------------------------------------------
+// Special / standalone SPARs — not part of the 80 or PE80 generator flow.
+// These can bundle MULTIPLE documents/pages under a single SPAR#.
+// ---------------------------------------------------------------------------
+const specialSpars = [
+    {
+        spar: 'SPAR11757',
+        special: true,
+        series: ['7000'],
+        devices: [],
+        funcs: [],
+        auxes: [],
+        thicknesses: [],
+        note: 'Cannot be used with the 16 Function.',
+        configRows: [
+            { key: 'Series', value: '7000 Series Lock' },
+            { key: 'Escutcheon', value: 'NE Escutcheon (from the PE80 series)' },
+            { key: 'Application', value: 'Manufacturer’s template — metal door' },
+            { key: 'Documents', value: '2 documents · 5 pages' },
+        ],
+        images: [
+            require('./images/spars/SPAR11757_1.jpg'),
+            require('./images/spars/SPAR11757_2_p1.jpg'),
+            require('./images/spars/SPAR11757_2_p2.jpg'),
+            require('./images/spars/SPAR11757_2_p3.jpg'),
+            require('./images/spars/SPAR11757_2_p4.jpg'),
+        ],
+        captions: [
+            'Doc 1 — NE Escutcheon part drawing (PP2138-789)',
+            'Doc 2 — 7000 Series template, Sheet 1 of 4: Base mechanism / trim',
+            'Doc 2 — 7000 Series template, Sheet 2 of 4: Mechanical options (aux control, 16 fn, aluminum door)',
+            'Doc 2 — 7000 Series template, Sheet 3 of 4: Electrical options (lever monitoring, EcoFlex, SN series)',
+            'Doc 2 — 7000 Series template, Sheet 4 of 4: Electronic latch retraction',
+        ],
+    },
+].map((s) => ({ ...s, image: s.images[0] || null }));
+
+export const sparDatabase = [...buildDatabase(), ...specialSpars];

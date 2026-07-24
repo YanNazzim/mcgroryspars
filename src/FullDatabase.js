@@ -1,9 +1,11 @@
-import React, { useState, useMemo, memo, useEffect } from 'react';
+import React, { useState, useMemo, memo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { downloadImage, printImage } from './sparActions';
 
-// Build the list of "config to get there" rows for one SPAR entry.
+// Build the "config to get there" rows for one SPAR entry.
+// Special/standalone SPARs supply their own rows via entry.configRows.
 function buildConfigRows(entry, labels) {
+    if (entry.configRows) return entry.configRows;
     const rows = [];
     rows.push({ key: 'Series', value: entry.series.map((s) => labels.series[s]).join('  &  ') });
     rows.push({ key: 'Device', value: entry.devices.map((d) => labels.device[d]).join(' / ') });
@@ -15,25 +17,55 @@ function buildConfigRows(entry, labels) {
     return rows;
 }
 
+// Filename used when downloading/printing a single page.
+const pageName = (entry, page) =>
+    entry.images.length > 1 ? `${entry.spar}_${page + 1}` : entry.spar;
+
 const SparCard = memo(({ entry, labels, onView }) => {
     const rows = buildConfigRows(entry, labels);
+    const [page, setPage] = useState(0);
+    const total = entry.images.length;
+    const multi = total > 1;
+    const current = entry.images[page] || null;
+
+    const go = (dir) => (e) => {
+        e.stopPropagation();
+        setPage((p) => (p + dir + total) % total);
+    };
+
     return (
-        <div className="spar-card">
-            <div className="spar-card-image">
-                {entry.image ? (
-                    <img
-                        src={entry.image}
-                        alt={`${entry.spar} reference drawing`}
-                        loading="lazy"
-                        onClick={() => onView(entry)}
-                    />
+        <div className={`spar-card ${entry.special ? 'special' : ''}`}>
+            <div className={`spar-card-image ${entry.special ? 'contain' : ''}`}>
+                {current ? (
+                    <>
+                        <img
+                            src={current}
+                            alt={`${entry.spar} drawing ${multi ? page + 1 : ''}`}
+                            loading="lazy"
+                            onClick={() => onView(entry, page)}
+                        />
+                        {multi && (
+                            <>
+                                <button className="gallery-nav prev" onClick={go(-1)} aria-label="Previous page">‹</button>
+                                <button className="gallery-nav next" onClick={go(1)} aria-label="Next page">›</button>
+                                <span className="gallery-badge">{page + 1} / {total}</span>
+                            </>
+                        )}
+                    </>
                 ) : (
                     <div className="spar-no-image">Drawing pending</div>
                 )}
             </div>
 
             <div className="spar-card-body">
-                <h3 className="spar-card-title">{entry.spar}</h3>
+                <div className="spar-card-heading">
+                    <h3 className="spar-card-title">{entry.spar}</h3>
+                    {multi && <span className="spar-doc-tag">{total} pages</span>}
+                </div>
+
+                {multi && entry.captions && (
+                    <p className="spar-caption">{entry.captions[page]}</p>
+                )}
 
                 <dl className="spar-config">
                     {rows.map((r) => (
@@ -47,25 +79,13 @@ const SparCard = memo(({ entry, labels, onView }) => {
                 {entry.note && <p className="spar-note">⚠ {entry.note}</p>}
 
                 <div className="spar-card-actions">
-                    <button
-                        className="spar-btn view"
-                        onClick={() => onView(entry)}
-                        disabled={!entry.image}
-                    >
-                        View
+                    <button className="spar-btn view" onClick={() => onView(entry, page)} disabled={!current}>
+                        {multi ? 'View / Flip' : 'View'}
                     </button>
-                    <button
-                        className="spar-btn download"
-                        onClick={() => downloadImage(entry.image, entry.spar)}
-                        disabled={!entry.image}
-                    >
+                    <button className="spar-btn download" onClick={() => downloadImage(current, pageName(entry, page))} disabled={!current}>
                         Download
                     </button>
-                    <button
-                        className="spar-btn print"
-                        onClick={() => printImage(entry.image, entry.spar)}
-                        disabled={!entry.image}
-                    >
+                    <button className="spar-btn print" onClick={() => printImage(current, pageName(entry, page))} disabled={!current}>
                         Print
                     </button>
                 </div>
@@ -78,26 +98,40 @@ export default function FullDatabase({ database, labels }) {
     const [search, setSearch] = useState('');
     const [seriesFilter, setSeriesFilter] = useState('all');
     const [deviceFilter, setDeviceFilter] = useState('all');
-    const [modalEntry, setModalEntry] = useState(null);
+    const [modal, setModal] = useState(null); // { entry, page }
+
+    // Only show the 7000 chip if there are special SPARs in the data.
+    const hasSpecial = useMemo(() => database.some((e) => e.series.includes('7000')), [database]);
 
     const filtered = useMemo(() => {
         const q = search.trim().toLowerCase();
         return database.filter((entry) => {
             if (seriesFilter !== 'all' && !entry.series.includes(seriesFilter)) return false;
+            // Device filter only applies to the generator series; special SPARs
+            // (no device) are hidden when a specific device is selected.
             if (deviceFilter !== 'all' && !entry.devices.includes(deviceFilter)) return false;
             if (q) {
                 const haystack = [
                     entry.spar,
-                    ...entry.series.map((s) => labels.series[s]),
+                    ...entry.series.map((s) => labels.series[s] || s),
                     ...entry.devices.map((d) => labels.device[d]),
                     ...entry.funcs.map((f) => labels.func[f]),
                     ...entry.thicknesses,
+                    ...(entry.configRows ? entry.configRows.map((r) => r.value) : []),
+                    entry.note || '',
                 ].join(' ').toLowerCase();
                 if (!haystack.includes(q)) return false;
             }
             return true;
         });
     }, [database, labels, search, seriesFilter, deviceFilter]);
+
+    const seriesOptions = [
+        { value: 'all', label: 'All' },
+        { value: '80', label: '80' },
+        { value: 'PE80', label: 'PE80' },
+        ...(hasSpecial ? [{ value: '7000', label: '7000' }] : []),
+    ];
 
     const FilterGroup = ({ label, value, onChange, options }) => (
         <div className="filter-group">
@@ -127,16 +161,7 @@ export default function FullDatabase({ database, labels }) {
                     onChange={(e) => setSearch(e.target.value)}
                 />
                 <div className="db-filters">
-                    <FilterGroup
-                        label="Series"
-                        value={seriesFilter}
-                        onChange={setSeriesFilter}
-                        options={[
-                            { value: 'all', label: 'All' },
-                            { value: '80', label: '80' },
-                            { value: 'PE80', label: 'PE80' },
-                        ]}
-                    />
+                    <FilterGroup label="Series" value={seriesFilter} onChange={setSeriesFilter} options={seriesOptions} />
                     <FilterGroup
                         label="Device"
                         value={deviceFilter}
@@ -156,46 +181,94 @@ export default function FullDatabase({ database, labels }) {
 
             <div className="spar-grid">
                 {filtered.map((entry) => (
-                    <SparCard key={entry.spar} entry={entry} labels={labels} onView={setModalEntry} />
+                    <SparCard
+                        key={entry.spar}
+                        entry={entry}
+                        labels={labels}
+                        onView={(e, page) => setModal({ entry: e, page })}
+                    />
                 ))}
             </div>
 
-            {filtered.length === 0 && (
-                <p className="db-empty">No SPARs match your filters.</p>
-            )}
+            {filtered.length === 0 && <p className="db-empty">No SPARs match your filters.</p>}
 
             {/* Lightbox modal — rendered via a portal to document.body so it
                 escapes the card's backdrop-filter/overflow containing block. */}
-            <SparModal entry={modalEntry} onClose={() => setModalEntry(null)} />
+            <SparModal modal={modal} onClose={() => setModal(null)} />
         </div>
     );
 }
 
-function SparModal({ entry, onClose }) {
-    // Close on Escape and lock background scroll while open.
+function SparModal({ modal, onClose }) {
+    const entry = modal ? modal.entry : null;
+    const total = entry ? entry.images.length : 0;
+    const [page, setPage] = useState(0);
+
+    // Sync to the page the user was on when they opened the modal.
+    useEffect(() => {
+        if (modal) setPage(modal.page || 0);
+    }, [modal]);
+
+    const step = useCallback((dir) => {
+        setPage((p) => (p + dir + total) % total);
+    }, [total]);
+
+    // Escape to close, arrows to flip, and lock background scroll while open.
     useEffect(() => {
         if (!entry) return undefined;
-        const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+        const onKey = (e) => {
+            if (e.key === 'Escape') onClose();
+            else if (e.key === 'ArrowLeft' && total > 1) step(-1);
+            else if (e.key === 'ArrowRight' && total > 1) step(1);
+        };
         window.addEventListener('keydown', onKey);
-        const prevOverflow = document.body.style.overflow;
+        const prev = document.body.style.overflow;
         document.body.style.overflow = 'hidden';
         return () => {
             window.removeEventListener('keydown', onKey);
-            document.body.style.overflow = prevOverflow;
+            document.body.style.overflow = prev;
         };
-    }, [entry, onClose]);
+    }, [entry, total, step, onClose]);
 
-    if (!entry || !entry.image) return null;
+    if (!entry || total === 0) return null;
+
+    const multi = total > 1;
+    const current = entry.images[page];
+    const name = pageName(entry, page);
 
     return createPortal(
         <div className="spar-modal" onClick={onClose}>
             <div className="spar-modal-content" onClick={(e) => e.stopPropagation()}>
                 <button className="spar-modal-close" onClick={onClose} aria-label="Close">×</button>
-                <h3>{entry.spar}</h3>
-                <img src={entry.image} alt={`${entry.spar} reference drawing`} />
+                <h3>
+                    {entry.spar}
+                    {multi && <span className="modal-page-count"> · page {page + 1} of {total}</span>}
+                </h3>
+
+                <div className="modal-stage">
+                    {multi && <button className="gallery-nav prev big" onClick={() => step(-1)} aria-label="Previous page">‹</button>}
+                    <img src={current} alt={`${entry.spar} drawing ${page + 1}`} />
+                    {multi && <button className="gallery-nav next big" onClick={() => step(1)} aria-label="Next page">›</button>}
+                </div>
+
+                {multi && entry.captions && <p className="modal-caption">{entry.captions[page]}</p>}
+
+                {multi && (
+                    <div className="modal-dots">
+                        {entry.images.map((_, i) => (
+                            <button
+                                key={i}
+                                className={`modal-dot ${i === page ? 'active' : ''}`}
+                                onClick={() => setPage(i)}
+                                aria-label={`Go to page ${i + 1}`}
+                            />
+                        ))}
+                    </div>
+                )}
+
                 <div className="spar-card-actions">
-                    <button className="spar-btn download" onClick={() => downloadImage(entry.image, entry.spar)}>Download</button>
-                    <button className="spar-btn print" onClick={() => printImage(entry.image, entry.spar)}>Print</button>
+                    <button className="spar-btn download" onClick={() => downloadImage(current, name)}>Download page</button>
+                    <button className="spar-btn print" onClick={() => printImage(current, name)}>Print page</button>
                 </div>
             </div>
         </div>,
