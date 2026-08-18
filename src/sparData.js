@@ -16,7 +16,8 @@ export const sparLookupTable = {
             },
             'all_other': {
                 'yes': { '2': 'SPAR10086', '2-9/16': 'SPAR10066' },
-                'no':  { '2': 'SPAR10087', '2-9/16': 'SPAR10063' },
+                // 2-3/4" (UNICO) is an 80 Series 8400 path only — see MD8413.
+                'no':  { '2': 'SPAR10087', '2-9/16': 'SPAR10063', '2-3/4': 'SPAR11987' },
             },
         },
         '8500': {
@@ -44,15 +45,57 @@ export const sparLookupTable = {
     },
 };
 
+// ---------------------------------------------------------------------------
+// McGrory door lines. A thickness is really a door — PRESTO, FUEGO or UNICO —
+// so the door name leads wherever a thickness is shown, and each line carries
+// its own accent colour so the Full Database can be scanned at a glance.
+//
+// Device model numbers are deliberately NOT part of a door's identity; they
+// change over time and are named on the drawing itself.
+// ---------------------------------------------------------------------------
+export const doorTypes = {
+    '2':      { name: 'PRESTO', thickness: '2"',      slug: 'presto' },
+    '2-9/16': { name: 'FUEGO',  thickness: '2-9/16"', slug: 'fuego'  },
+    '2-3/4':  { name: 'UNICO',  thickness: '2-3/4"',  slug: 'unico'  },
+};
+
+// Display order for door pickers, filter chips and card tags.
+export const doorOrder = ['2', '2-9/16', '2-3/4'];
+
+// 8400 / 8500 belong to the 80 Series; PE8400 / PE8500 to the PE80 Series.
+// A device is never shown under a series that does not use that name.
+const deviceNames = {
+    '8400': { '80': '8400', 'PE80': 'PE8400' },
+    '8500': { '80': '8500', 'PE80': 'PE8500' },
+};
+
+const deviceTypes = {
+    '8400': 'Concealed Vertical Rod (CVR)',
+    '8500': 'Narrow Stile Rim (RIM)',
+};
+
+// What one series calls this device, e.g. ('PE80', '8400') -> 'PE8400'.
+export function deviceName(series, device) {
+    return deviceNames[device]?.[series] || device;
+}
+
+// A SPAR can be shared by both series (e.g. the night latch), so join every
+// name that applies: ['80','PE80'] + '8500' -> '8500 / PE8500'.
+export function deviceShortName(seriesList, device) {
+    const names = [...new Set(seriesList.map((s) => deviceName(s, device)))];
+    return names.join(' / ') || device;
+}
+
+export function deviceLabel(seriesList, device) {
+    const type = deviceTypes[device];
+    return type ? `${deviceShortName(seriesList, device)} — ${type}` : deviceShortName(seriesList, device);
+}
+
 // Human-readable labels for each selection value.
 export const labels = {
     series: {
         '80': '80 Series',
         'PE80': 'PE80 Series (New Generation)',
-    },
-    device: {
-        '8400': '8400 / PE8400 — Concealed Vertical Rod (CVR)',
-        '8500': '8500 / PE8500 — Narrow Stile Rim (RIM)',
     },
     func: {
         exit_only: '10 – Exit Only',
@@ -64,10 +107,10 @@ export const labels = {
         yes: 'With Auxiliary Control (cylinder / thumbturn)',
         no: 'No Auxiliary Control',
     },
-    thickness: {
-        '2': '2" Door Thickness',
-        '2-9/16': '2-9/16" Door Thickness',
-    },
+    // Door name first — the thickness is the detail, not the headline.
+    thickness: Object.fromEntries(
+        Object.entries(doorTypes).map(([key, d]) => [key, `${d.name} Door — ${d.thickness}`])
+    ),
 };
 
 // Reference photo for each SPAR#, extracted from the McGrory PDFs.
@@ -96,7 +139,11 @@ const sparImages = {
 };
 
 // Optional "heads up" notes shown on a card (e.g. known drawing discrepancies).
-const drawingNotes = {};
+const drawingNotes = {
+    SPAR11987:
+        'UNICO door — 2-3/4" thick, offset (12)(55)(56)(43). ' +
+        'Kit covers functions 06, 13, 15, 73 and 74.',
+};
 
 // Walk the lookup table and collapse it into one entry per unique SPAR#,
 // gathering every configuration path that produces it.

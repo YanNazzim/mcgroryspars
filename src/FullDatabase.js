@@ -1,6 +1,7 @@
 import React, { useState, useMemo, memo, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { downloadImage, printImage } from './sparActions';
+import { doorTypes, doorOrder, deviceLabel, deviceShortName } from './sparData';
 
 // Build the "config to get there" rows for one SPAR entry.
 // Special/standalone SPARs supply their own rows via entry.configRows.
@@ -8,13 +9,34 @@ function buildConfigRows(entry, labels) {
     if (entry.configRows) return entry.configRows;
     const rows = [];
     rows.push({ key: 'Series', value: entry.series.map((s) => labels.series[s]).join('  &  ') });
-    rows.push({ key: 'Device', value: entry.devices.map((d) => labels.device[d]).join(' / ') });
+    // Named for the series that actually uses it — 8400 under 80, PE8400 under PE80.
+    rows.push({ key: 'Device', value: entry.devices.map((d) => deviceLabel(entry.series, d)).join(' / ') });
     rows.push({ key: 'Function', value: entry.funcs.map((f) => labels.func[f]).join('   •   ') });
     if (entry.auxes.length > 0) {
         rows.push({ key: 'Aux Control', value: entry.auxes.map((a) => labels.aux[a]).join(' / ') });
     }
-    rows.push({ key: 'Door Thickness', value: entry.thicknesses.map((t) => labels.thickness[t]).join(' / ') });
+    rows.push({ key: 'Door', value: entry.thicknesses.map((t) => labels.thickness[t]).join(' / ') });
     return rows;
+}
+
+// The at-a-glance tag strip: which doors this SPAR covers, then series/device.
+function SparTags({ entry }) {
+    const doors = entry.thicknesses.filter((t) => doorTypes[t]);
+    if (doors.length === 0 && entry.devices.length === 0) return null;
+    return (
+        <div className="spar-tags">
+            {doors.map((t) => (
+                <span key={t} className={`door-tag ${doorTypes[t].slug}`}>
+                    {doorTypes[t].name}
+                </span>
+            ))}
+            {entry.devices.map((d) => (
+                <span key={d} className="meta-tag">
+                    {deviceShortName(entry.series, d)}
+                </span>
+            ))}
+        </div>
+    );
 }
 
 // Filename used when downloading/printing a single page.
@@ -63,6 +85,8 @@ const SparCard = memo(({ entry, labels, onView }) => {
                     {multi && <span className="spar-doc-tag">{total} pages</span>}
                 </div>
 
+                <SparTags entry={entry} />
+
                 {multi && entry.captions && (
                     <p className="spar-caption">{entry.captions[page]}</p>
                 )}
@@ -98,6 +122,7 @@ export default function FullDatabase({ database, labels }) {
     const [search, setSearch] = useState('');
     const [seriesFilter, setSeriesFilter] = useState('all');
     const [deviceFilter, setDeviceFilter] = useState('all');
+    const [doorFilter, setDoorFilter] = useState('all');
     const [modal, setModal] = useState(null); // { entry, page }
 
     // Only show the 7000 chip if there are special SPARs in the data.
@@ -110,13 +135,18 @@ export default function FullDatabase({ database, labels }) {
             // Device filter only applies to the generator series; special SPARs
             // (no device) are hidden when a specific device is selected.
             if (deviceFilter !== 'all' && !entry.devices.includes(deviceFilter)) return false;
+            // Door filter, like the device filter, hides special SPARs that
+            // are not tied to a door line.
+            if (doorFilter !== 'all' && !entry.thicknesses.includes(doorFilter)) return false;
             if (q) {
                 const haystack = [
                     entry.spar,
                     ...entry.series.map((s) => labels.series[s] || s),
-                    ...entry.devices.map((d) => labels.device[d]),
+                    ...entry.devices.map((d) => deviceLabel(entry.series, d)),
                     ...entry.funcs.map((f) => labels.func[f]),
                     ...entry.thicknesses,
+                    // Searchable by door name: "unico", "presto", "fuego".
+                    ...entry.thicknesses.map((t) => doorTypes[t]?.name || ''),
                     ...(entry.configRows ? entry.configRows.map((r) => r.value) : []),
                     entry.note || '',
                 ].join(' ').toLowerCase();
@@ -124,7 +154,17 @@ export default function FullDatabase({ database, labels }) {
             }
             return true;
         });
-    }, [database, labels, search, seriesFilter, deviceFilter]);
+    }, [database, labels, search, seriesFilter, deviceFilter, doorFilter]);
+
+    const hasFilters =
+        search !== '' || seriesFilter !== 'all' || deviceFilter !== 'all' || doorFilter !== 'all';
+
+    const clearFilters = () => {
+        setSearch('');
+        setSeriesFilter('all');
+        setDeviceFilter('all');
+        setDoorFilter('all');
+    };
 
     const seriesOptions = [
         { value: 'all', label: 'All' },
@@ -140,7 +180,7 @@ export default function FullDatabase({ database, labels }) {
                 {options.map((opt) => (
                     <button
                         key={opt.value}
-                        className={`filter-chip ${value === opt.value ? 'active' : ''}`}
+                        className={`filter-chip ${opt.slug || ''} ${value === opt.value ? 'active' : ''}`}
                         onClick={() => onChange(opt.value)}
                     >
                         {opt.label}
@@ -168,16 +208,36 @@ export default function FullDatabase({ database, labels }) {
                         onChange={setDeviceFilter}
                         options={[
                             { value: 'all', label: 'All' },
-                            { value: '8400', label: '8400 (CVR)' },
-                            { value: '8500', label: '8500 (RIM)' },
+                            { value: '8400', label: 'CVR' },
+                            { value: '8500', label: 'RIM' },
+                        ]}
+                    />
+                    <FilterGroup
+                        label="Door"
+                        value={doorFilter}
+                        onChange={setDoorFilter}
+                        options={[
+                            { value: 'all', label: 'All' },
+                            ...doorOrder.map((key) => ({
+                                value: key,
+                                label: doorTypes[key].name,
+                                slug: doorTypes[key].slug,
+                            })),
                         ]}
                     />
                 </div>
             </div>
 
-            <p className="db-count">
-                Showing {filtered.length} of {database.length} SPARs
-            </p>
+            <div className="db-summary">
+                <p className="db-count">
+                    Showing {filtered.length} of {database.length} SPARs
+                </p>
+                {hasFilters && (
+                    <button className="db-clear" onClick={clearFilters}>
+                        Clear filters
+                    </button>
+                )}
+            </div>
 
             <div className="spar-grid">
                 {filtered.map((entry) => (

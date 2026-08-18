@@ -18,7 +18,20 @@
   --shadow-color: rgba(56, 130, 246, 0.28);
   --chip-bg: rgba(255, 255, 255, 0.05);
   --green-accent: #10b981;
+
+  /* McGrory door lines — one accent per door so the database reads at a glance */
+  --presto: #fbbf24;
+  --presto-soft: rgba(251, 191, 36, 0.14);
+  --fuego: #fb7185;
+  --fuego-soft: rgba(251, 113, 133, 0.14);
+  --unico: #a78bfa;
+  --unico-soft: rgba(167, 139, 250, 0.14);
 }
+
+/* Each door class exposes its accent so tags, chips and cards can share rules */
+.presto { --door: var(--presto); --door-soft: var(--presto-soft); }
+.fuego  { --door: var(--fuego);  --door-soft: var(--fuego-soft); }
+.unico  { --door: var(--unico);  --door-soft: var(--unico-soft); }
 
 body {
   margin: 0;
@@ -931,6 +944,163 @@ code {
   line-height: 1.35;
   color: var(--muted-text);
   min-height: 2.3em;
+}
+
+/* ---------------------------------------------------------------------------
+   Door lines — PRESTO / FUEGO / UNICO
+   The door is the headline everywhere it appears: a big coloured name on the
+   generator card, a bold pill on every database card and filter chip.
+   --------------------------------------------------------------------------- */
+
+/* Generator: the door name is the card, the thickness is the footnote. */
+.radio-card label.door-card {
+  border-color: color-mix(in srgb, var(--door) 35%, transparent);
+}
+
+.radio-card label.door-card span:first-of-type {
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1.1;
+  color: var(--door);
+  text-transform: uppercase;
+}
+
+.radio-card label.door-card.checked span:first-of-type {
+  color: var(--door);
+  text-shadow: 0 0 22px var(--door-soft);
+}
+
+.radio-card label.door-card .sublabel {
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted-text);
+  text-transform: none;
+}
+
+.radio-card label.door-card:hover:not(.disabled) {
+  border-color: var(--door);
+}
+
+.radio-card label.door-card.checked {
+  background-color: var(--door-soft);
+  border-color: var(--door);
+  box-shadow: 0 12px 22px -6px var(--door-soft), 0 0 0 1px var(--door) inset;
+}
+
+/* Repaint the checkmark badge in the door's colour (shorthand clears the
+   default blue gradient). */
+.radio-card label.door-card.checked::before {
+  background: var(--door);
+  color: #0b1120;
+  box-shadow: 0 2px 8px -1px var(--door-soft);
+}
+
+/* Database: tag strip under the SPAR# — doors first, then series/device. */
+.spar-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: -0.15rem;
+}
+
+.door-tag {
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--door, var(--light-blue));
+  background-color: var(--door-soft, var(--chip-bg));
+  border: 1px solid color-mix(in srgb, var(--door, var(--light-blue)) 45%, transparent);
+  padding: 0.26rem 0.7rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.meta-tag {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted-text);
+  background-color: var(--chip-bg);
+  border: 1px solid var(--card-border);
+  padding: 0.26rem 0.65rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* Filter chips carry the door colour when active. */
+.filter-chip.presto,
+.filter-chip.fuego,
+.filter-chip.unico {
+  color: var(--door);
+  border-color: color-mix(in srgb, var(--door) 40%, transparent);
+  letter-spacing: 0.06em;
+  font-weight: 800;
+}
+
+.filter-chip.presto:hover:not(.active),
+.filter-chip.fuego:hover:not(.active),
+.filter-chip.unico:hover:not(.active) {
+  border-color: var(--door);
+  background-color: var(--door-soft);
+}
+
+.filter-chip.presto.active,
+.filter-chip.fuego.active,
+.filter-chip.unico.active {
+  background-color: var(--door);
+  border-color: var(--door);
+  color: #0b1120;
+}
+
+/* Generated result: name the door alongside the SPAR#. */
+.result-door {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+}
+
+.result-door .door-tag {
+  font-size: 0.95rem;
+  padding: 0.34rem 0.95rem;
+}
+
+.result-door-meta {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted-text);
+}
+
+/* Filter summary row */
+.db-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.db-clear {
+  background: none;
+  border: 1px solid var(--header-border);
+  color: var(--muted-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.db-clear:hover {
+  color: var(--text-color);
+  border-color: var(--light-blue-hover);
 }
 
 /* Modal gallery */

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from 'react'; // Import memo
 import images from './images/images';
-import { sparLookupTable, sparDatabase, labels } from './sparData';
+import { sparLookupTable, sparDatabase, labels, doorTypes, doorOrder, deviceName } from './sparData';
 import { downloadImage, printImage } from './sparActions';
 import FullDatabase from './FullDatabase';
 import './index.css';
@@ -25,7 +25,7 @@ const Step = memo(React.forwardRef(({ number, title, children, isVisible }, ref)
 
 // Memoizing the RadioCard means that only the cards that are actually
 // changing (e.g., the one being checked) will re-render.
-const RadioCard = memo(({ name, value, label, sublabel, checked, onChange, disabled, imageUrl }) => {
+const RadioCard = memo(({ name, value, label, sublabel, checked, onChange, disabled, imageUrl, className = '' }) => {
     return (
         <div className="radio-card">
             <input
@@ -39,7 +39,7 @@ const RadioCard = memo(({ name, value, label, sublabel, checked, onChange, disab
             />
             <label
                 htmlFor={`${name}_${value}`}
-                className={`${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} ${imageUrl ? 'image-card' : ''}`}
+                className={`${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} ${imageUrl ? 'image-card' : ''} ${className}`}
             >
                 {imageUrl && (
                     <img
@@ -54,6 +54,14 @@ const RadioCard = memo(({ name, value, label, sublabel, checked, onChange, disab
         </div>
     );
 });
+
+// The UNICO door is only offered on the 80 Series 8400 path.
+const isUnicoPath = (series, device) => series === '80' && device === '8400';
+
+const doorCardsFor = (series, device) =>
+    doorOrder
+        .filter((key) => key !== '2-3/4' || isUnicoPath(series, device))
+        .map((key) => ({ key, ...doorTypes[key] }));
 
 // A helper hook to get the previous value of a prop or state.
 function usePrevious(value) {
@@ -107,6 +115,16 @@ export default function App() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [series, device, func, auxLatch, thickness]);
 
+    // Drop a stale 2-3/4" selection if the user goes back and moves off the
+    // 80 Series 8400 path, where it is the only place UNICO is offered.
+    useEffect(() => {
+        if (thickness === '2-3/4' && !isUnicoPath(series, device)) {
+            setThickness(null);
+        }
+    }, [series, device, thickness]);
+
+    const doorCards = doorCardsFor(series, device);
+
     // Determine visibility of each step
     const isStep1Visible = true;
     const isStep2Visible = series !== null;
@@ -119,12 +137,22 @@ export default function App() {
     // Calculate the correct step number for Step 5
     const step5Number = device === '8400' ? 5 : 3;
 
+    // Every question answered but the lookup came back empty — that combination
+    // has no SPAR# on file yet, so say so instead of showing nothing.
+    const selectionComplete = Boolean(
+        device === '8400'
+            ? series && func && auxLatch && thickness
+            : device === '8500' && series && func && thickness
+    );
+    const noMatch = selectionComplete && !sparNumber;
+
     // Get the previous visibility state to trigger scroll only when a step becomes visible
     const prevIsStep2Visible = usePrevious(isStep2Visible);
     const prevIsStep3Visible = usePrevious(isStep3Visible);
     const prevIsStep4Visible = usePrevious(isStep4Visible);
     const prevIsStep5Visible = usePrevious(isStep5Visible);
     const prevSparNumber = usePrevious(sparNumber);
+    const prevNoMatch = usePrevious(noMatch);
 
     // Generic scroll function
     const scrollToRef = (ref) => {
@@ -167,6 +195,12 @@ export default function App() {
         }
     }, [sparNumber, prevSparNumber]);
 
+    useEffect(() => {
+        if (!prevNoMatch && noMatch) {
+            scrollToRef(resultRef);
+        }
+    }, [noMatch, prevNoMatch]);
+
     // Function to generate the SPAR# based on selections
     // (sparLookupTable is imported from ./sparData so the generator and the
     //  Full Database tab always stay in sync.)
@@ -174,13 +208,15 @@ export default function App() {
         let generatedSpar;
 
         if (device === '8400') {
-            generatedSpar = sparLookupTable[series][device][func][auxLatch][thickness];
+            generatedSpar = sparLookupTable[series]?.[device]?.[func]?.[auxLatch]?.[thickness];
         } else {
             // Logic for the 8500 device: uses function and thickness, but no auxLatch
-            generatedSpar = sparLookupTable[series][device][func][thickness];
+            generatedSpar = sparLookupTable[series]?.[device]?.[func]?.[thickness];
         }
 
-        setSparNumber(generatedSpar);
+        // Not every branch is covered — e.g. 2-3/4" only has a SPAR# on the
+        // "All Other Functions / No Auxiliary Control" path.
+        setSparNumber(generatedSpar || null);
     };
 
     // Function to reset the form to its initial state
@@ -248,7 +284,7 @@ export default function App() {
                         <RadioCard
                             name="device"
                             value="8400"
-                            label="8400/PE8400"
+                            label={deviceName(series, '8400')}
                             sublabel="Concealed Vertical Rod (CVR)"
                             checked={device === '8400'}
                             onChange={(e) => { setDevice(e.target.value); setFunc(null); setAuxLatch(null); }}
@@ -257,7 +293,7 @@ export default function App() {
                         <RadioCard
                             name="device"
                             value="8500"
-                            label="8500/PE8500"
+                            label={deviceName(series, '8500')}
                             sublabel="Narrow Stile Rim Exit Device (RIM)"
                             checked={device === '8500'}
                             // Removed setFunc('all_other') to allow function selection
@@ -283,7 +319,7 @@ export default function App() {
                                 name="func"
                                 value="all_other"
                                 label="All Other Functions"
-                                sublabel="(Keyed/Trim on exterior, e.g., 8435, 8488, etc.)"
+                                sublabel={`(Keyed/Trim on exterior, e.g., ${series === 'PE80' ? 'PE' : ''}8435, ${series === 'PE80' ? 'PE' : ''}8488, etc.)`}
                                 checked={func === 'all_other'}
                                 onChange={(e) => setFunc(e.target.value)}
                             />
@@ -328,10 +364,20 @@ export default function App() {
                 </Step>
 
                 {/* Step 5: Door Thickness - Dynamic step number based on device */}
-                <Step ref={step5Ref} number={step5Number} title="Select Door Thickness" isVisible={isStep5Visible}>
+                <Step ref={step5Ref} number={step5Number} title="Select Door" isVisible={isStep5Visible}>
                     <div className="radio-group">
-                        <RadioCard name="thickness" value="2" label='2" Door Thickness' checked={thickness === '2'} onChange={(e) => setThickness(e.target.value)} />
-                        <RadioCard name="thickness" value="2-9/16" label='2-9/16" Door Thickness' checked={thickness === '2-9/16'} onChange={(e) => setThickness(e.target.value)} />
+                        {doorCards.map((d) => (
+                            <RadioCard
+                                key={d.key}
+                                name="thickness"
+                                value={d.key}
+                                label={d.name}
+                                sublabel={`${d.thickness} Door Thickness`}
+                                className={`door-card ${d.slug}`}
+                                checked={thickness === d.key}
+                                onChange={(e) => setThickness(e.target.value)}
+                            />
+                        ))}
                     </div>
                 </Step>
 
@@ -349,6 +395,14 @@ export default function App() {
                             >
                                 {sparNumber}
                             </p>
+                            {doorTypes[thickness] && (
+                                <p className={`result-door ${doorTypes[thickness].slug}`}>
+                                    <span className="door-tag">{doorTypes[thickness].name}</span>
+                                    <span className="result-door-meta">
+                                        {doorTypes[thickness].thickness} · {deviceName(series, device)}
+                                    </span>
+                                </p>
+                            )}
                             {image ? (
                                 <div className="result-drawing">
                                     <img src={image} alt={`${sparNumber} reference drawing`} />
@@ -363,6 +417,18 @@ export default function App() {
                         </div>
                     );
                 })()}
+
+                {/* No SPAR# exists for this combination */}
+                {noMatch && (
+                    <div ref={resultRef} className="result-display">
+                        <h3>No SPAR# On File</h3>
+                        <p className="result-nodrawing">
+                            {thickness === '2-3/4'
+                                ? 'The UNICO door is currently covered only on the 80 Series 8400, All Other Functions, No Auxiliary Control path (SPAR11987).'
+                                : 'This combination does not have a SPAR# on file yet. Please contact McGrory Glass.'}
+                        </p>
+                    </div>
+                )}
 
                 {/* Reset Button */}
                 {(series || sparNumber) && (
