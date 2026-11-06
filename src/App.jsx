@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, memo } from 'react'; // Import memo
 import images from './images/images';
 import { sparLookupTable, sparDatabase, labels, doorTypes, doorOrder, deviceName } from './sparData';
 import { downloadImage, printImage } from './sparActions';
-import FullDatabase from './FullDatabase';
+import FullDatabase from './FullDatabase.jsx';
 import './index.css';
 
 // By wrapping the component in React.memo, we prevent it from re-rendering
