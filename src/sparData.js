@@ -238,6 +238,44 @@ const specialSpars = [
             'Doc 2 — 7000 Series template, Sheet 4 of 4: Electronic latch retraction',
         ],
     },
+    {
+        // Same drawings as SPAR11757, adapted for the 2" PRESTO door.
+        spar: 'SPAR12505',
+        special: true,
+        series: ['7000'],
+        devices: [],
+        funcs: [],
+        auxes: [],
+        thicknesses: ['2'],
+        note:
+            'Same drawings as SPAR11757, for a 2" PRESTO door. Cannot be used with the 16 Function. ' +
+            'See the attached drawing for the PE escutcheon parts needed.',
+        configRows: [
+            { key: 'Series', value: '7000 Series Lock' },
+            { key: 'Escutcheon', value: 'NE Escutcheon (from the PE80 series)' },
+            { key: 'Application', value: 'Manufacturer’s template — metal door' },
+            { key: 'Door', value: 'PRESTO Door — 2"' },
+            { key: 'Outside Spindle', value: 'PE-1671 — special for 2" door' },
+            { key: 'Inside Spindle', value: 'PE-0666 — standard' },
+            { key: 'Thru Bolts', value: '01-1550 × 2 — 3-1/4" long' },
+            { key: 'Top Case', value: '68-5374 — standard' },
+            { key: 'Documents', value: '2 documents · 5 pages' },
+        ],
+        images: [
+            new URL('./images/spars/SPAR11757_1.jpg', import.meta.url).href,
+            new URL('./images/spars/SPAR11757_2_p1.jpg', import.meta.url).href,
+            new URL('./images/spars/SPAR11757_2_p2.jpg', import.meta.url).href,
+            new URL('./images/spars/SPAR11757_2_p3.jpg', import.meta.url).href,
+            new URL('./images/spars/SPAR11757_2_p4.jpg', import.meta.url).href,
+        ],
+        captions: [
+            'Doc 1 — NE Escutcheon part drawing (PP2138-789)',
+            'Doc 2 — 7000 Series template, Sheet 1 of 4: Base mechanism / trim',
+            'Doc 2 — 7000 Series template, Sheet 2 of 4: Mechanical options (aux control, 16 fn, aluminum door)',
+            'Doc 2 — 7000 Series template, Sheet 3 of 4: Electrical options (lever monitoring, EcoFlex, SN series)',
+            'Doc 2 — 7000 Series template, Sheet 4 of 4: Electronic latch retraction',
+        ],
+    },
 ].map((s) => ({ ...s, image: s.images[0] || null }));
 
 export const sparDatabase = [...buildDatabase(), ...specialSpars];
